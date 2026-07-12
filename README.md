@@ -107,7 +107,6 @@ After simulation, the project generates:
 - Streamlit web dashboard
 
 ## Author
-
-Nivedan Kumar Yadav  
+Nivedan Kumar Yadav, Shyamali Kumari, Ankur Kumar Singh
 B.E. Electronics and Communication Engineering  
 Sant Longowal Institute of Engineering and Technology (SLIET)
