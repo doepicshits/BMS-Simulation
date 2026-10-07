@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
+import tracemalloc
 
 @dataclass
 class BatteryParameters:
@@ -86,7 +87,6 @@ def plot_results(df):
     fig, ax = plt.subplots(3, 2, figsize=(15, 13))
     fig.suptitle("Battery Management System (BMS) Simulation Dashboard", fontsize=16, fontweight="bold")
     
-    # Condense plotting by iterating through chart configurations 
     cfg = [(0, 0, 'voltage_v', 'tab:blue', 'Pack Voltage', 'Voltage (V)', []),
            (0, 1, 'current_a', 'tab:orange', 'Current Profile', 'Current (A)', [(0, 'black', '-')]),
            (1, 0, 'soc_percent', 'tab:green', 'State of Charge (SOC)', 'SOC (%)', [(20, 'red', '--')]),
@@ -107,6 +107,9 @@ def plot_results(df):
     a.legend(); plt.tight_layout(); plt.savefig("bms_simulation_dashboard.png", dpi=300); plt.show()
 
 if __name__ == "__main__":
+    # Start tracking memory allocations
+    tracemalloc.start()
+    
     bms = BMSSimulator(BatteryParameters())
     
     # drive cycle loop with vectorized numpy selection
@@ -114,10 +117,23 @@ if __name__ == "__main__":
     c = t_vals % 600
     i_vals = np.select([c<120, c<240, c<360, c<420, c<520], [2., 6., 9., -3., 4.], default=1.)
     
-    for t, i in zip(t_vals, i_vals): bms.simulate_step(t, i, 1)
+    for t, i in zip(t_vals, i_vals): 
+        bms.simulate_step(t, i, 1)
     
     res = pd.DataFrame(bms.history)
     res.to_csv("bms_simulation_results.csv", index=False)
     print_summary(res, bms)
+    
+    # Snapshot memory BEFORE Matplotlib renders (to see core logic size)
+    current, peak = tracemalloc.get_traced_memory()
+    print(f"\n[Memory Profiler] Peak memory BEFORE plotting: {peak / 1024 / 1024:.2f} MB")
+    
     plot_results(res)
+    
+    # Snapshot memory AFTER Matplotlib
+    current_final, peak_final = tracemalloc.get_traced_memory()
+    print(f"[Memory Profiler] Peak memory AFTER plotting: {peak_final / 1024 / 1024:.2f} MB")
+    
+    tracemalloc.stop()
+    
     print("\nFiles generated successfully:\n1. bms_simulation_results.csv\n2. bms_simulation_dashboard.png")
